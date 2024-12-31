@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require_once '../db/connection.php';
+require_once '../../db/connection.php';
 
 $query = "SELECT baju.id, baju.nama_baju, jenis_baju.nama_jenis, ukuran_baju.ukuran, baju.harga, baju.stok
           FROM baju
