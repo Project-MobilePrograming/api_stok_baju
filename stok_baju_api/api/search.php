@@ -5,7 +5,7 @@ require_once '../../db/connection.php';
 // Ambil parameter query string
 $keyword = isset($_GET['keyword']) ? $_GET['keyword'] : '';
 
-$query = "SELECT baju.id_baju, baju.nama_baju, jenis_baju.nama_jenis_baju, ukuran_baju.ukuran, baju.harga, baju.stok 
+$query = "SELECT baju.id_baju, baju.nama_baju, jenis_baju.nama_jenis_baju, ukuran_baju.ukuran_baju, baju.harga, baju.stok 
           FROM baju 
           INNER JOIN jenis_baju ON baju.id_jenis_baju = jenis_baju.id_jenis_baju 
           INNER JOIN ukuran_baju ON baju.id_ukuran = ukuran_baju.id_ukuran 
