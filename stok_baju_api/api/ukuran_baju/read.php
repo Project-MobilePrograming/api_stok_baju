@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require_once '../connection.php';
+require_once '../db/connection.php';
 
 $query = "SELECT * FROM ukuran_baju";
 $stmt = $conn->prepare($query);
