@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require_once '../../db/connection.php';
+require_once __DIR__ . '/../../db/connection.php';
 
 // Ambil parameter query string
 $keyword = isset($_GET['keyword']) ? $_GET['keyword'] : '';

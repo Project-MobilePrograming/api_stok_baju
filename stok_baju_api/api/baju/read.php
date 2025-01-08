@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json");
-require_once '../../db/connection.php';
+require_once __DIR__ . '/../../db/connection.php';
 
 try {
     // Query membaca data dari tabel
