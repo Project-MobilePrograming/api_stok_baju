@@ -17,7 +17,7 @@ $request = strtok($request, '?');
 switch ($request) {
     // Route untuk CRUD tabel baju
     case '/api/baju/create':
-        require_once  '/api/baju/create.php';
+        require_once __DIR__ . '/api/baju/create.php';
         break;
     case '/api/baju/read':
         require_once __DIR__ . '/api/baju/read.php';

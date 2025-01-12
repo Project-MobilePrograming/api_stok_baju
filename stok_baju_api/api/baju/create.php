@@ -4,8 +4,8 @@ require_once __DIR__ . '/../../db/connection.php';
 
 try {
     // Validasi input data utama
-    if (empty($_POST['nama_baju']) || empty($_POST['id_jenis_baju']) || empty($_POST['id_ukuran_baju']) || 
-        empty($_POST['harga']) || empty($_POST['stok'])) {
+    if (empty($_POST['nama_baju']) || empty($_POST['id_jenis_baju']) || 
+        empty($_POST['id_ukuran_baju']) || empty($_POST['harga']) || empty($_POST['stok'])) {
         throw new Exception("Input tidak valid. Pastikan semua data sudah diisi.");
     }
 
@@ -15,11 +15,11 @@ try {
     $id_ukuran_baju = $_POST['id_ukuran_baju'];
     $harga = $_POST['harga'];
     $stok = $_POST['stok'];
-    $gambar_url = null; // Default null jika tidak ada gambar
+    $gambar_url = "http://localhost/uploads/default.jpg"; // Gambar default
 
     // Validasi dan upload gambar (jika ada)
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = "../../uploads/"; // Folder untuk menyimpan gambar
+    if (isset($_FILES['gambar_url']) && $_FILES['gambar_url']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . "/../../uploads/"; // Path relatif dari create.php
 
         // Buat folder uploads jika belum ada
         if (!is_dir($uploadDir)) {
@@ -29,23 +29,23 @@ try {
         }
 
         // Generate nama unik untuk file
-        $fileName = time() . "_" . basename($_FILES['image']['name']);
+        $fileName = time() . "_" . basename($_FILES['gambar_url']['name']);
         $uploadPath = $uploadDir . $fileName;
 
         // Validasi tipe file
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!in_array($_FILES['image']['type'], $allowedTypes)) {
+        if (!in_array($_FILES['gambar_url']['type'], $allowedTypes)) {
             throw new Exception("File harus berupa gambar dengan format JPEG, PNG, atau GIF.");
         }
 
         // Validasi ukuran file (maksimal 2MB)
         $maxSize = 2 * 1024 * 1024; // 2MB
-        if ($_FILES['image']['size'] > $maxSize) {
+        if ($_FILES['gambar_url']['size'] > $maxSize) {
             throw new Exception("Ukuran file maksimal adalah 2MB.");
         }
 
         // Pindahkan file ke folder upload
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
+        if (move_uploaded_file($_FILES['gambar_url']['tmp_name'], $uploadPath)) {
             $gambar_url = "http://localhost/uploads/" . $fileName; // URL untuk akses gambar
         } else {
             throw new Exception("Gagal mengunggah gambar.");
@@ -68,9 +68,16 @@ try {
     // Eksekusi query
     if ($stmt->execute()) {
         echo json_encode([
-            "success" => true,
+            "status" => "success",
             "message" => "Baju berhasil ditambahkan.",
-            "gambar_url" => $gambar_url
+            "data" => [
+                "nama_baju" => $nama_baju,
+                "id_jenis_baju" => $id_jenis_baju,
+                "id_ukuran_baju" => $id_ukuran_baju,
+                "harga" => $harga,
+                "stok" => $stok,
+                "gambar_url" => $gambar_url
+            ]
         ]);
     } else {
         throw new Exception("Gagal menambahkan baju.");
@@ -78,8 +85,8 @@ try {
 } catch (Exception $e) {
     // Tangani error dan kirim respons JSON
     echo json_encode([
-        "success" => false,
-        "error" => $e->getMessage()
+        "status" => "error",
+        "message" => $e->getMessage()
     ]);
 }
 ?>

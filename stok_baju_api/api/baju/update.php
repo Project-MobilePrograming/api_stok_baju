@@ -27,12 +27,12 @@ try {
 
     $gambar_lama = null;
     if ($baju && !empty($baju['gambar_url'])) {
-        $gambar_lama = str_replace("http://localhost/uploads/", "../../uploads/", $baju['gambar_url']);
+        $gambar_lama = str_replace("http://localhost/uploads/", __DIR__ . "/../../uploads/", $baju['gambar_url']);
     }
 
     // Validasi dan upload gambar (jika ada)
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = "../../uploads/"; // Folder untuk menyimpan gambar
+    if (isset($_FILES['gambar_url']) && $_FILES['gambar_url']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . "/../../uploads/"; // Path relatif ke folder uploads
 
         // Buat folder uploads jika belum ada
         if (!is_dir($uploadDir)) {
@@ -42,43 +42,50 @@ try {
         }
 
         // Generate nama unik untuk file
-        $fileName = time() . "_" . basename($_FILES['image']['name']);
+        $fileName = time() . "_" . basename($_FILES['gambar_url']['name']);
         $uploadPath = $uploadDir . $fileName;
 
         // Validasi tipe file
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!in_array($_FILES['image']['type'], $allowedTypes)) {
+        if (!in_array($_FILES['gambar_url']['type'], $allowedTypes)) {
             throw new Exception("File harus berupa gambar dengan format JPEG, PNG, atau GIF.");
         }
 
         // Validasi ukuran file (maksimal 2MB)
         $maxSize = 2 * 1024 * 1024; // 2MB
-        if ($_FILES['image']['size'] > $maxSize) {
+        if ($_FILES['gambar_url']['size'] > $maxSize) {
             throw new Exception("Ukuran file maksimal adalah 2MB.");
         }
 
         // Hapus gambar lama jika ada
         if ($gambar_lama && file_exists($gambar_lama)) {
-            unlink($gambar_lama);
+            if (!unlink($gambar_lama)) {
+                throw new Exception("Gagal menghapus gambar lama.");
+            }
         }
 
         // Pindahkan file ke folder upload
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
+        if (move_uploaded_file($_FILES['gambar_url']['tmp_name'], $uploadPath)) {
             $gambar_url = "http://localhost/uploads/" . $fileName; // URL untuk akses gambar
         } else {
             throw new Exception("Gagal mengunggah gambar.");
+        }
+    } else {
+        // Jika tidak ada gambar baru, gunakan gambar lama
+        if ($baju && !empty($baju['gambar_url'])) {
+            $gambar_url = $baju['gambar_url'];
         }
     }
 
     // Query untuk memperbarui data di tabel `baju`
     if ($gambar_url) {
-        // Jika ada gambar baru, update juga gambar_url
+        // Jika ada gambar baru atau gambar lama, update juga gambar_url
         $query = "UPDATE baju 
                   SET nama_baju = :nama_baju, id_jenis_baju = :id_jenis_baju, id_ukuran_baju = :id_ukuran_baju, 
                       harga = :harga, stok = :stok, gambar_url = :gambar_url 
                   WHERE id = :id";
     } else {
-        // Jika tidak ada gambar baru, jangan update gambar_url
+        // Jika tidak ada gambar baru atau gambar lama, jangan update gambar_url
         $query = "UPDATE baju 
                   SET nama_baju = :nama_baju, id_jenis_baju = :id_jenis_baju, id_ukuran_baju = :id_ukuran_baju, 
                       harga = :harga, stok = :stok 
@@ -102,9 +109,17 @@ try {
     // Eksekusi query
     if ($stmt->execute()) {
         echo json_encode([
-            "success" => true,
+            "status" => "success",
             "message" => "Baju berhasil diperbarui.",
-            "gambar_url" => $gambar_url
+            "data" => [
+                "id" => $id,
+                "nama_baju" => $nama_baju,
+                "id_jenis_baju" => $id_jenis_baju,
+                "id_ukuran_baju" => $id_ukuran_baju,
+                "harga" => $harga,
+                "stok" => $stok,
+                "gambar_url" => $gambar_url
+            ]
         ]);
     } else {
         throw new Exception("Gagal memperbarui baju.");
@@ -112,8 +127,8 @@ try {
 } catch (Exception $e) {
     // Tangani error dan kirim respons JSON
     echo json_encode([
-        "success" => false,
-        "error" => $e->getMessage()
+        "status" => "error",
+        "message" => $e->getMessage()
     ]);
 }
 ?>

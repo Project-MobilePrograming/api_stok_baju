@@ -10,11 +10,20 @@ if (!empty($data->nama_jenis_baju)) {
     $stmt->bindParam(":nama_jenis_baju", $data->nama_jenis_baju);
 
     if ($stmt->execute()) {
-        echo json_encode(["message" => "Jenis baju berhasil ditambahkan."]);
+        // Create a response object
+        $response = new stdClass();
+        $response->message = "Jenis baju berhasil ditambahkan.";
+        echo json_encode($response);
     } else {
-        echo json_encode(["message" => "Gagal menambahkan jenis baju."]);
+        // Create a response object for failure
+        $response = new stdClass();
+        $response->message = "Gagal menambahkan jenis baju.";
+        echo json_encode($response);
     }
 } else {
-    echo json_encode(["message" => "Nama jenis baju tidak boleh kosong."]);
+    // Create a response object for empty nama_jenis_baju
+    $response = new stdClass();
+    $response->message = "Nama jenis baju tidak boleh kosong.";
+    echo json_encode($response);
 }
 ?>
