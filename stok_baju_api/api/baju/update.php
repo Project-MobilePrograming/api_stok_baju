@@ -1,6 +1,6 @@
 <?php
 header("Content-Type: application/json"); // Set header untuk respons JSON
-require_once '../../db/connection.php'; // Include file koneksi database
+require_once __DIR__ . '/../../db/connection.php';
 
 try {
     // Validasi input data utama
