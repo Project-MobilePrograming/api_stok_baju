@@ -19,7 +19,7 @@ try {
     $id_ukuran_baju = intval($_POST['id_ukuran_baju']); // Konversi ke integer
     $harga = floatval($_POST['harga']); // Konversi ke float
     $stok = intval($_POST['stok']); // Konversi ke integer
-    $gambar_url = "https://0685-2001-448a-500c-1d64-a998-a616-8616-92bf.ngrok-free.app/PPSB/stok_baju_api/uploads/default.jpg"; // Gambar default
+    $gambar_url = " https://d68d-2001-448a-500c-1d64-f4cd-5918-c6c9-86b0.ngrok-free.app/PPSB/stok_baju_api/uploads/default.jpg"; // Gambar default
 
     // Validasi dan upload gambar (jika ada)
     if (isset($_FILES['gambar_url']) && $_FILES['gambar_url']['error'] === UPLOAD_ERR_OK) {
@@ -74,17 +74,17 @@ try {
         "message" => $e->getMessage()
     ]);
 }
-
-// Fungsi untuk memproses upload gambar
 function prosesUploadGambar($file, $uploadDir) {
-    // Generate nama unik untuk file
-    $fileName = time() . "_" . preg_replace("/[^a-zA-Z0-9\._-]/", "_", $file['name']);
-    $uploadPath = $uploadDir . $fileName;
+    // Ambil nama asli file
+    $originalFileName = pathinfo($file['name'], PATHINFO_FILENAME); // Nama file tanpa ekstensi
+    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)); // Ekstensi file
+
+    // Generate nama file unik dengan menambahkan timestamp
+    $uniqueFileName = $originalFileName . "_" . time() . "." . $fileExtension;
+    $uploadPath = $uploadDir . $uniqueFileName;
 
     // Validasi ekstensi file
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
     if (!in_array($fileExtension, $allowedExtensions)) {
         throw new Exception("File harus berupa gambar dengan ekstensi JPG, JPEG, PNG, atau GIF.");
     }
@@ -92,7 +92,6 @@ function prosesUploadGambar($file, $uploadDir) {
     // Validasi tipe MIME menggunakan fungsi `mime_content_type`
     $fileMimeType = mime_content_type($file['tmp_name']);
     $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
-
     if (!in_array($fileMimeType, $allowedMimeTypes)) {
         throw new Exception("File harus berupa gambar dengan format JPEG, PNG, atau GIF.");
     }
@@ -111,7 +110,7 @@ function prosesUploadGambar($file, $uploadDir) {
 
     // Pindahkan file ke folder upload
     if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
-        return "https://0685-2001-448a-500c-1d64-a998-a616-8616-92bf.ngrok-free.app/PPSB/stok_baju_api/uploads/" . $fileName;
+        return $uniqueFileName; // Kembalikan hanya nama file
     } else {
         throw new Exception("Gagal mengunggah gambar.");
     }
