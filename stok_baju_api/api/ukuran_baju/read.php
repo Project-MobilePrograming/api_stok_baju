@@ -10,20 +10,23 @@ try {
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (!empty($results)) {
-        $response = new stdClass();
-        $response->status = "success";
-        $response->message = "Data berhasil diambil.";
-        echo json_encode($response);
+        echo json_encode([
+            "status" => "success",
+            "message" => "Data berhasil diambil.",
+            "data" => $results
+        ]);
     } else {
-        $response = new stdClass();
-        $response->status = "success";
-        $response->message = "Tidak ada data ditemukan.";
-        echo json_encode($response);
+        echo json_encode([
+            "status" => "success",
+            "message" => "Tidak ada data ditemukan.",
+            "data" => []
+        ]);
     }
 } catch (PDOException $e) {
-    $response = new stdClass();
-    $response->status = "error";
-    $response->message = $e->getMessage();
-    echo json_encode($response);
+    echo json_encode([
+        "status" => "error",
+        "message" => $e->getMessage(),
+        "data" => null
+    ]);
 }
 ?>
