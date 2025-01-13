@@ -4,107 +4,104 @@ require_once __DIR__ . '/../../db/connection.php';
 
 try {
     // Validasi input data utama
-    if (empty($_POST['id']) || empty($_POST['nama_baju']) || empty($_POST['id_jenis_baju']) || 
-        empty($_POST['id_ukuran_baju']) || empty($_POST['harga']) || empty($_POST['stok'])) {
+    if (
+        empty($_POST['id']) || empty($_POST['nama_baju']) || empty($_POST['id_jenis_baju']) || 
+        empty($_POST['id_ukuran_baju']) || empty($_POST['harga']) || empty($_POST['stok'])
+    ) {
         throw new Exception("Input tidak valid. Pastikan semua data sudah diisi.");
     }
 
     // Ambil data utama dari form
-    $id = $_POST['id'];
-    $nama_baju = $_POST['nama_baju'];
-    $id_jenis_baju = $_POST['id_jenis_baju'];
-    $id_ukuran_baju = $_POST['id_ukuran_baju'];
-    $harga = $_POST['harga'];
-    $stok = $_POST['stok'];
-    $gambar_url = null; // Default null jika tidak ada gambar baru
+    $id = intval($_POST['id']);
+    $nama_baju = htmlspecialchars($_POST['nama_baju']);
+    $id_jenis_baju = intval($_POST['id_jenis_baju']);
+    $id_ukuran_baju = intval($_POST['id_ukuran_baju']);
+    $harga = floatval($_POST['harga']);
+    $stok = intval($_POST['stok']);
+    $gambar_url = null;
 
-    // Ambil path gambar lama dari database
+    // Ambil data lama dari database
     $query = "SELECT gambar_url FROM baju WHERE id = :id";
     $stmt = $conn->prepare($query);
     $stmt->bindParam(":id", $id);
     $stmt->execute();
     $baju = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $gambar_lama = null;
-    if ($baju && !empty($baju['gambar_url'])) {
-        $gambar_lama = str_replace("http://localhost/uploads/", __DIR__ . "/../../uploads/", $baju['gambar_url']);
+    if (!$baju) {
+        throw new Exception("Data baju tidak ditemukan.");
     }
 
-    // Validasi dan upload gambar (jika ada)
+    $gambar_lama = $baju['gambar_url'];
+
+    // Validasi dan upload gambar baru (jika ada)
     if (isset($_FILES['gambar_url']) && $_FILES['gambar_url']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = __DIR__ . "/../../uploads/"; // Path relatif ke folder uploads
+        $uploadDir = __DIR__ . "/../../uploads/";
 
         // Buat folder uploads jika belum ada
-        if (!is_dir($uploadDir)) {
-            if (!mkdir($uploadDir, 0755, true)) {
-                throw new Exception("Gagal membuat folder uploads.");
-            }
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
+            throw new Exception("Gagal membuat folder uploads.");
         }
 
-        // Generate nama unik untuk file
-        $fileName = time() . "_" . basename($_FILES['gambar_url']['name']);
+        // Generate nama unik untuk file baru
+        $fileName = time() . "_" . preg_replace("/[^a-zA-Z0-9\._-]/", "_", $_FILES['gambar_url']['name']);
         $uploadPath = $uploadDir . $fileName;
 
-        // Validasi tipe file
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!in_array($_FILES['gambar_url']['type'], $allowedTypes)) {
+        // Validasi ekstensi file
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $fileExtension = strtolower(pathinfo($_FILES['gambar_url']['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($fileExtension, $allowedExtensions)) {
+            throw new Exception("File harus berupa gambar dengan ekstensi JPG, JPEG, PNG, atau GIF.");
+        }
+
+        // Validasi tipe MIME
+        $fileMimeType = mime_content_type($_FILES['gambar_url']['tmp_name']);
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+
+        if (!in_array($fileMimeType, $allowedMimeTypes)) {
             throw new Exception("File harus berupa gambar dengan format JPEG, PNG, atau GIF.");
         }
 
         // Validasi ukuran file (maksimal 2MB)
-        $maxSize = 2 * 1024 * 1024; // 2MB
+        $maxSize = 2 * 1024 * 1024;
         if ($_FILES['gambar_url']['size'] > $maxSize) {
             throw new Exception("Ukuran file maksimal adalah 2MB.");
         }
 
+        // Pindahkan file baru ke folder uploads
+        if (!move_uploaded_file($_FILES['gambar_url']['tmp_name'], $uploadPath)) {
+            throw new Exception("Gagal mengunggah gambar baru.");
+        }
+
         // Hapus gambar lama jika ada
-        if ($gambar_lama && file_exists($gambar_lama)) {
-            if (!unlink($gambar_lama)) {
-                throw new Exception("Gagal menghapus gambar lama.");
+        if (!empty($gambar_lama)) {
+            $oldImagePath = str_replace("http://localhost/uploads/", $uploadDir, $gambar_lama);
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
             }
         }
 
-        // Pindahkan file ke folder upload
-        if (move_uploaded_file($_FILES['gambar_url']['tmp_name'], $uploadPath)) {
-            $gambar_url = "http://localhost/uploads/" . $fileName; // URL untuk akses gambar
-        } else {
-            throw new Exception("Gagal mengunggah gambar.");
-        }
+        $gambar_url = "http://localhost/uploads/" . $fileName; // Set URL untuk gambar baru
     } else {
         // Jika tidak ada gambar baru, gunakan gambar lama
-        if ($baju && !empty($baju['gambar_url'])) {
-            $gambar_url = $baju['gambar_url'];
-        }
+        $gambar_url = $gambar_lama;
     }
 
-    // Query untuk memperbarui data di tabel `baju`
-    if ($gambar_url) {
-        // Jika ada gambar baru atau gambar lama, update juga gambar_url
-        $query = "UPDATE baju 
-                  SET nama_baju = :nama_baju, id_jenis_baju = :id_jenis_baju, id_ukuran_baju = :id_ukuran_baju, 
-                      harga = :harga, stok = :stok, gambar_url = :gambar_url 
-                  WHERE id = :id";
-    } else {
-        // Jika tidak ada gambar baru atau gambar lama, jangan update gambar_url
-        $query = "UPDATE baju 
-                  SET nama_baju = :nama_baju, id_jenis_baju = :id_jenis_baju, id_ukuran_baju = :id_ukuran_baju, 
-                      harga = :harga, stok = :stok 
-                  WHERE id = :id";
-    }
-
+    // Query untuk memperbarui data
+    $query = "UPDATE baju 
+              SET nama_baju = :nama_baju, id_jenis_baju = :id_jenis_baju, id_ukuran_baju = :id_ukuran_baju, 
+                  harga = :harga, stok = :stok, gambar_url = :gambar_url 
+              WHERE id = :id";
     $stmt = $conn->prepare($query);
 
-    // Bind parameter ke query
+    // Bind parameter
     $stmt->bindParam(":id", $id);
     $stmt->bindParam(":nama_baju", $nama_baju);
     $stmt->bindParam(":id_jenis_baju", $id_jenis_baju);
     $stmt->bindParam(":id_ukuran_baju", $id_ukuran_baju);
     $stmt->bindParam(":harga", $harga);
     $stmt->bindParam(":stok", $stok);
-
-    if ($gambar_url) {
-        $stmt->bindParam(":gambar_url", $gambar_url);
-    }
+    $stmt->bindParam(":gambar_url", $gambar_url);
 
     // Eksekusi query
     if ($stmt->execute()) {
@@ -122,10 +119,10 @@ try {
             ]
         ]);
     } else {
-        throw new Exception("Gagal memperbarui baju.");
+        throw new Exception("Gagal memperbarui baju. Periksa query SQL Anda.");
     }
 } catch (Exception $e) {
-    // Tangani error dan kirim respons JSON
+    // Tangani error
     echo json_encode([
         "status" => "error",
         "message" => $e->getMessage()
